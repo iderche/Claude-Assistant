@@ -1,0 +1,15 @@
+{
+  "name": "hq-assistant",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0",
+    "@upstash/redis": "^1.34.0",
+    "ical-generator": "^7.1.0",
+    "node-cron": "^3.0.3"
+  }
+}

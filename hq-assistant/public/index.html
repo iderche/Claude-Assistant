@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>HQ</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#080810" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #080810;
+      --surface: #0e0e1a;
+      --border: #1a1a2e;
+      --accent: #5b5ef4;
+      --accent2: #a78bfa;
+      --text: #dde1f0;
+      --muted: #3a3a5c;
+      --high: #f87171;
+      --med: #fbbf24;
+      --low: #34d399;
+      --safe: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; overflow: hidden; }
+
+    #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 700px; margin: 0 auto; position: relative; }
+
+    /* ── Header ── */
+    header {
+      padding: 16px 20px 0;
+      background: linear-gradient(to bottom, var(--bg) 80%, transparent);
+      position: relative; z-index: 10;
+    }
+    .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 26px; letter-spacing: -0.03em; color: #fff; }
+    .logo span { color: var(--accent2); }
+    .status-pill {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 4px 10px; font-size: 10px;
+      letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase;
+    }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--low); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .stats-row { display: flex; gap: 14px; font-size: 11px; color: var(--muted); margin-bottom: 0; }
+    .stat { display: flex; align-items: center; gap: 4px; }
+    .stat strong { color: var(--text); font-weight: 500; }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 20px; margin-top: 10px; }
+    .tab {
+      padding: 9px 14px; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+      cursor: pointer; border: none; background: none; color: var(--muted);
+      border-bottom: 2px solid transparent; font-family: inherit; font-weight: 500;
+      transition: all 0.15s;
+    }
+    .tab.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+
+    /* ── Body ── */
+    .body { flex: 1; overflow-y: auto; padding: 0 20px; scroll-behavior: smooth; }
+    .body::-webkit-scrollbar { width: 3px; }
+    .body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── Chat ── */
+    .chat-wrap { padding: 12px 0 8px; display: flex; flex-direction: column; }
+    .empty-state { text-align: center; padding: 50px 20px; }
+    .empty-icon { font-size: 36px; margin-bottom: 12px; }
+    .empty-title { font-family: 'Syne', sans-serif; font-size: 18px; color: var(--muted); margin-bottom: 8px; }
+    .empty-hints { font-size: 11px; color: var(--border); line-height: 2; letter-spacing: 0.05em; }
+
+    .msg { display: flex; gap: 8px; margin-bottom: 14px; animation: fadeUp 0.2s ease; }
+    .msg.user { flex-direction: row-reverse; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .avatar {
+      width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; margin-top: 2px;
+    }
+    .msg.user .avatar { background: var(--accent); color: #fff; }
+    .msg.assistant .avatar { background: var(--surface); color: var(--accent2); border: 1px solid var(--border); font-family: 'Syne', sans-serif; font-size: 11px; }
+    .bubble {
+      max-width: 80%; padding: 10px 14px; border-radius: 12px;
+      font-size: 13px; line-height: 1.65; white-space: pre-wrap;
+    }
+    .msg.user .bubble { background: var(--accent); color: #fff; border-radius: 12px 4px 12px 12px; }
+    .msg.assistant .bubble { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 4px 12px 12px 12px; }
+
+    .thinking { display: flex; gap: 5px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px 12px 12px 12px; width: 60px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: bounce 1s infinite; }
+    .dot:nth-child(2) { animation-delay: 0.15s; }
+    .dot:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes bounce { 0%,80%,100%{transform:translateY(0);opacity:0.4} 40%{transform:translateY(-5px);opacity:1} }
+
+    /* ── Todos ── */
+    .filter-row { display: flex; gap: 6px; padding: 14px 0 10px; flex-wrap: wrap; }
+    .filter-btn {
+      padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border);
+      cursor: pointer; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+      font-family: inherit; transition: all 0.12s; background: none; color: var(--muted);
+    }
+    .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .todo-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 12px; border-radius: 8px; margin-bottom: 5px;
+      background: var(--surface); border: 1px solid var(--border);
+      transition: opacity 0.2s;
+    }
+    .todo-item.done { opacity: 0.4; }
+    .p-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .checkbox {
+      width: 17px; height: 17px; border-radius: 4px; flex-shrink: 0;
+      border: 2px solid var(--border); cursor: pointer; margin-top: 1px;
+      display: flex; align-items: center; justify-content: center; font-size: 10px;
+      transition: all 0.12s;
+    }
+    .checkbox.checked { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .todo-text { flex: 1; font-size: 13px; color: var(--text); line-height: 1.45; }
+    .todo-item.done .todo-text { text-decoration: line-through; color: var(--muted); }
+    .todo-meta { font-size: 10px; color: var(--muted); margin-top: 3px; }
+    .tag { font-size: 9px; background: var(--border); color: var(--muted); padding: 2px 6px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.08em; margin-right: 4px; }
+    .del-btn { background: none; border: none; cursor: pointer; color: var(--border); font-size: 16px; flex-shrink: 0; line-height: 1; padding: 0 2px; transition: color 0.12s; }
+    .del-btn:hover { color: var(--high); }
+
+    /* ── Agenda ── */
+    .event-group { margin-bottom: 18px; }
+    .event-date-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; padding-left: 2px; }
+    .event-date-label.today-label { color: var(--accent2); }
+    .event-item { display: flex; align-items: stretch; border-radius: 8px; overflow: hidden; margin-bottom: 5px; border: 1px solid var(--border); background: var(--surface); }
+    .event-stripe { width: 3px; flex-shrink: 0; }
+    .event-body { flex: 1; padding: 8px 12px; }
+    .event-title { font-size: 13px; color: var(--text); font-weight: 500; }
+    .event-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Input ── */
+    .input-area {
+      padding: 10px 16px;
+      padding-bottom: calc(10px + var(--safe));
+      border-top: 1px solid var(--border);
+      display: flex; gap: 8px; align-items: flex-end;
+      background: var(--bg);
+    }
+    textarea {
+      flex: 1; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 14px; color: var(--text);
+      font-family: inherit; font-size: 13px; resize: none;
+      outline: none; min-height: 42px; max-height: 100px; line-height: 1.5;
+      transition: border-color 0.15s;
+    }
+    textarea:focus { border-color: var(--accent); }
+    .icon-btn {
+      width: 42px; height: 42px; border-radius: 10px; border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; font-size: 17px; transition: all 0.15s;
+    }
+    .icon-btn.send { background: var(--accent); color: #fff; }
+    .icon-btn.send:disabled { opacity: 0.35; cursor: default; }
+    .icon-btn.mic { background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
+    .icon-btn.mic.listening { background: var(--high); border-color: var(--high); color: #fff; animation: micPulse 0.8s infinite; }
+    @keyframes micPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+
+    /* ── No items ── */
+    .no-items { color: var(--border); font-size: 13px; text-align: center; padding: 28px 0; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="header-top">
+      <div class="logo">H<span>Q</span></div>
+      <div class="status-pill"><div class="status-dot"></div><span id="status-label">ready</span></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><strong id="s-urgent">0</strong> urgent</div>
+      <div class="stat"><strong id="s-pending">0</strong> pending</div>
+      <div class="stat"><strong id="s-today">0</strong> today</div>
+      <div class="stat"><strong id="s-events">0</strong> events</div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="chat">Chat</button>
+    <button class="tab" data-tab="todos">Tasks</button>
+    <button class="tab" data-tab="agenda">Agenda</button>
+  </div>
+
+  <div class="body">
+    <!-- Chat -->
+    <div id="tab-chat" class="chat-wrap">
+      <div class="empty-state" id="empty-chat">
+        <div class="empty-icon">⚡</div>
+        <div class="empty-title">HQ is ready</div>
+        <div class="empty-hints">
+          "Add task: review Q2 forecast, high priority"<br>
+          "Schedule call with client Thursday 2pm"<br>
+          "What's urgent this week?"
+        </div>
+      </div>
+    </div>
+
+    <!-- Todos -->
+    <div id="tab-todos" style="display:none">
+      <div class="filter-row">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="active">Active</button>
+        <button class="filter-btn" data-filter="high">Urgent</button>
+        <button class="filter-btn" data-filter="done">Done</button>
+      </div>
+      <div id="todos-list"></div>
+    </div>
+
+    <!-- Agenda -->
+    <div id="tab-agenda" style="display:none">
+      <div id="events-list" style="padding-top:14px"></div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <textarea id="input" placeholder="Talk to HQ…" rows="1"></textarea>
+    <button class="icon-btn mic" id="mic-btn" title="Hold to speak">🎤</button>
+    <button class="icon-btn send" id="send-btn" title="Send">↑</button>
+  </div>
+</div>
+
+<script>
+const API_BASE = ""; // same origin on Vercel
+let todos = [], events = [], history = [], filter = "all", activeTab = "chat";
+let tts = null, recognition = null, listening = false;
+
+const PRIORITY_COLOR = { high: "#f87171", medium: "#fbbf24", low: "#34d399" };
+const TYPE_COLOR = { meeting: "#818cf8", deadline: "#f87171", personal: "#34d399", other: "#64748b" };
+const todayStr = new Date().toISOString().split("T")[0];
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+async function init() {
+  await loadData();
+  renderStats();
+  renderTodos();
+  renderEvents();
+}
+
+async function loadData() {
+  try {
+    const r = await fetch(`${API_BASE}/api/data`);
+    const d = await r.json();
+    todos = d.todos || [];
+    events = d.events || [];
+  } catch (e) { console.warn("Could not load data:", e); }
+}
+
+// ── Chat ─────────────────────────────────────────────────────────────────────
+async function send(text) {
+  const msg = text.trim();
+  if (!msg) return;
+  document.getElementById("input").value = "";
+  autoResize();
+  document.getElementById("empty-chat")?.remove();
+
+  appendMsg("user", msg);
+  history.push({ role: "user", content: msg });
+
+  const thinking = appendThinking();
+  setStatus("thinking");
+
+  try {
+    const r = await fetch(`${API_BASE}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg, history: history.slice(-20) }),
+    });
+    const d = await r.json();
+    thinking.remove();
+
+    const reply = d.reply || "Done.";
+    appendMsg("assistant", reply);
+    history.push({ role: "assistant", content: reply });
+
+    if (d.todos) { todos = d.todos; renderTodos(); }
+    if (d.events) { events = d.events; renderEvents(); }
+    renderStats();
+    speak(reply);
+  } catch (e) {
+    thinking.remove();
+    appendMsg("assistant", "⚠️ Connection error. Is your backend deployed?");
+  }
+  setStatus("ready");
+}
+
+function appendMsg(role, text) {
+  const wrap = document.getElementById("tab-chat");
+  const div = document.createElement("div");
+  div.className = `msg ${role}`;
+  div.innerHTML = `
+    <div class="avatar">${role === "user" ? "U" : "HQ"}</div>
+    <div class="bubble">${escHtml(text)}</div>`;
+  wrap.appendChild(div);
+  div.scrollIntoView({ behavior: "smooth", block: "end" });
+  return div;
+}
+
+function appendThinking() {
+  const wrap = document.getElementById("tab-chat");
+  const div = document.createElement("div");
+  div.className = "msg assistant";
+  div.innerHTML = `<div class="avatar">HQ</div><div class="thinking"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  wrap.appendChild(div);
+  div.scrollIntoView({ behavior: "smooth", block: "end" });
+  return div;
+}
+
+// ── TTS ───────────────────────────────────────────────────────────────────────
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 1.05; u.pitch = 1; u.volume = 1;
+  // Prefer a natural English voice
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v => v.name.includes("Samantha") || v.name.includes("Karen") || (v.lang === "en-US" && v.localService));
+  if (preferred) u.voice = preferred;
+  window.speechSynthesis.speak(u);
+}
+
+// ── STT ───────────────────────────────────────────────────────────────────────
+function startListening() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return alert("Voice not supported. Use Chrome or Safari.");
+  if (listening) { recognition?.stop(); return; }
+
+  recognition = new SR();
+  recognition.lang = "en-US";
+  recognition.continuous = false;
+  recognition.interimResults = true;
+
+  recognition.onresult = e => {
+    const transcript = Array.from(e.results).map(r => r[0].transcript).join("");
+    document.getElementById("input").value = transcript;
+    if (e.results[e.results.length - 1].isFinal) {
+      setTimeout(() => send(transcript), 200);
+    }
+  };
+  recognition.onend = () => { setListening(false); };
+  recognition.onerror = () => { setListening(false); };
+  recognition.start();
+  setListening(true);
+}
+
+function setListening(val) {
+  listening = val;
+  const btn = document.getElementById("mic-btn");
+  btn.classList.toggle("listening", val);
+  btn.textContent = val ? "⏹" : "🎤";
+}
+
+// ── Render: Stats ─────────────────────────────────────────────────────────────
+function renderStats() {
+  document.getElementById("s-urgent").textContent = todos.filter(t => !t.done && t.priority === "high").length;
+  document.getElementById("s-pending").textContent = todos.filter(t => !t.done).length;
+  document.getElementById("s-today").textContent = events.filter(e => e.date === todayStr).length;
+  document.getElementById("s-events").textContent = events.length;
+}
+
+// ── Render: Todos ─────────────────────────────────────────────────────────────
+function renderTodos() {
+  const list = document.getElementById("todos-list");
+  let filtered = todos;
+  if (filter === "active") filtered = todos.filter(t => !t.done);
+  else if (filter === "high") filtered = todos.filter(t => !t.done && t.priority === "high");
+  else if (filter === "done") filtered = todos.filter(t => t.done);
+
+  if (!filtered.length) { list.innerHTML = '<div class="no-items">Nothing here.</div>'; return; }
+
+  list.innerHTML = filtered.map(t => `
+    <div class="todo-item ${t.done ? "done" : ""}" data-id="${t.id}">
+      <div class="p-dot" style="background:${PRIORITY_COLOR[t.priority] || "#64748b"}"></div>
+      <div class="checkbox ${t.done ? "checked" : ""}" onclick="toggleTodo('${t.id}')">${t.done ? "✓" : ""}</div>
+      <div style="flex:1">
+        <div class="todo-text">${escHtml(t.text)}</div>
+        <div class="todo-meta">
+          ${t.dueDate ? `Due ${fmtDate(t.dueDate)}` : ""}
+          ${(t.tags || []).map(tag => `<span class="tag">${tag}</span>`).join("")}
+        </div>
+      </div>
+      <button class="del-btn" onclick="deleteTodo('${t.id}')">×</button>
+    </div>`).join("");
+}
+
+// ── Render: Events ────────────────────────────────────────────────────────────
+function renderEvents() {
+  const list = document.getElementById("events-list");
+  const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date));
+  if (!sorted.length) { list.innerHTML = '<div class="no-items">No events.</div>'; return; }
+
+  const groups = {};
+  sorted.forEach(e => { if (!groups[e.date]) groups[e.date] = []; groups[e.date].push(e); });
+
+  list.innerHTML = Object.entries(groups).map(([date, evts]) => `
+    <div class="event-group">
+      <div class="event-date-label ${date === todayStr ? "today-label" : ""}">${date === todayStr ? "▶ Today" : fmtDateFull(date)}</div>
+      ${evts.map(ev => `
+        <div class="event-item">
+          <div class="event-stripe" style="background:${TYPE_COLOR[ev.type] || "#64748b"}"></div>
+          <div class="event-body">
+            <div class="event-title">${escHtml(ev.title)}</div>
+            <div class="event-meta">${[ev.time, ev.duration, ev.notes].filter(Boolean).join(" · ")}</div>
+          </div>
+          <button class="del-btn" style="padding:0 10px" onclick="deleteEvent('${ev.id}')">×</button>
+        </div>`).join("")}
+    </div>`).join("");
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+async function toggleTodo(id) {
+  todos = todos.map(t => t.id === id ? { ...t, done: !t.done } : t);
+  renderTodos(); renderStats();
+  await fetch(`${API_BASE}/api/data`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ todos }) });
+}
+async function deleteTodo(id) {
+  todos = todos.filter(t => t.id !== id);
+  renderTodos(); renderStats();
+  await fetch(`${API_BASE}/api/data`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ todos }) });
+}
+async function deleteEvent(id) {
+  events = events.filter(e => e.id !== id);
+  renderEvents(); renderStats();
+  await fetch(`${API_BASE}/api/data`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ events }) });
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll(".tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeTab = btn.dataset.tab;
+    ["chat", "todos", "agenda"].forEach(t => {
+      document.getElementById(`tab-${t}`).style.display = t === activeTab ? "" : "none";
+    });
+  });
+});
+
+// ── Filters ──────────────────────────────────────────────────────────────────
+document.querySelectorAll(".filter-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    filter = btn.dataset.filter;
+    renderTodos();
+  });
+});
+
+// ── Input ─────────────────────────────────────────────────────────────────────
+const inputEl = document.getElementById("input");
+inputEl.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(inputEl.value); } });
+inputEl.addEventListener("input", autoResize);
+document.getElementById("send-btn").addEventListener("click", () => send(inputEl.value));
+document.getElementById("mic-btn").addEventListener("click", startListening);
+
+function autoResize() {
+  inputEl.style.height = "auto";
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 100) + "px";
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function setStatus(s) { document.getElementById("status-label").textContent = s; }
+function escHtml(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function fmtDate(d) { return new Date(d + "T12:00:00").toLocaleDateString("en-CA", { month: "short", day: "numeric" }); }
+function fmtDateFull(d) { return new Date(d + "T12:00:00").toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" }); }
+
+// Preload TTS voices
+window.speechSynthesis?.getVoices();
+window.speechSynthesis?.addEventListener("voiceschanged", () => window.speechSynthesis.getVoices());
+
+init();
+</script>
+</body>
+</html>
